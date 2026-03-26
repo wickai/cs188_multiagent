@@ -93,31 +93,32 @@ class ReflexAgent(Agent):
             minFoodDist = min(manhattanDistance(newPos, f) for f in newFoodList)
             value += 10.0 / (minFoodDist + 1.0)
         
-        # currCaps = currentGameState.getCapsules()
-        # newCaps = successorGameState.getCapsules()
-        # if len(newCaps) < len(currCaps):
-        #     value += 120.0
-        # if newCaps:
-        #     minCapDist = min(manhattanDistance(newPos, c) for c in newCaps)
-        #     value += 4.0 / (minCapDist + 1.0)
+        currCaps = currentGameState.getCapsules()
+        newCaps = successorGameState.getCapsules()
+        if len(newCaps) < len(currCaps):
+            value += 120.0
+        if newCaps:
+            minCapDist = min(manhattanDistance(newPos, c) for c in newCaps)
+            value += 4.0 / (minCapDist + 1.0)
         
-        # ghostPositions = [g.getPosition() for g in newGhostStates]
-        # for gp, st in zip(ghostPositions, newScaredTimes):
-        #     dist = manhattanDistance(newPos, gp)
-        #     if st > 0:
-        #         value += 8.0 / (dist + 1.0)
-        #     else:
-        #         if dist <= 1:
-        #             value -= 250.0
-        #         else:
-        #             value -= 6.0 / dist
         ghostPositions = [g.getPosition() for g in newGhostStates]
-        for gp in ghostPositions:
+        for gp, st in zip(ghostPositions, newScaredTimes):
             dist = manhattanDistance(newPos, gp)
-            if dist <= 1:
-                value -= 250.0
+            if st > 0:
+                value += 8.0 / (dist + 1.0)
             else:
-                value -= 6.0 / dist
+                if dist <= 1:
+                    value -= 250.0
+                else:
+                    value -= 6.0 / dist
+        # ghostPositions = [g.getPosition() for g in newGhostStates]
+        # print(ghostPositions)
+        # for gp in ghostPositions:
+        #     dist = manhattanDistance(newPos, gp)
+        #     if dist <= 1:
+        #         value -= 250.0
+        #     else:
+        #         value -= 6.0 / dist
 
         return score + value
 
@@ -179,8 +180,36 @@ class MinimaxAgent(MultiAgentSearchAgent):
         gameState.isLose():
         Returns whether or not the game state is a losing state
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        numAgents = gameState.getNumAgents()
+        def minimax(state, depth, agentIndex):
+            if depth == 0 or state.isWin() or state.isLose():
+                return self.evaluationFunction(state)
+            actions = state.getLegalActions(agentIndex)
+            if not actions:
+                return self.evaluationFunction(state)
+            if agentIndex == 0:
+                v = float("-inf")
+                for a in actions:
+                    v = max(v, minimax(state.generateSuccessor(agentIndex, a), depth, 1))
+                return v
+            else:
+                v = float("inf")
+                nextAgent = agentIndex + 1
+                nextDepth = depth
+                if nextAgent == numAgents:
+                    nextAgent = 0
+                    nextDepth = depth - 1
+                for a in actions:
+                    v = min(v, minimax(state.generateSuccessor(agentIndex, a), nextDepth, nextAgent))
+                return v
+        bestAction = None
+        bestValue = float("-inf")
+        for a in gameState.getLegalActions(0):
+            v = minimax(gameState.generateSuccessor(0, a), self.depth, 1)
+            if v > bestValue:
+                bestValue = v
+                bestAction = a
+        return bestAction
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
